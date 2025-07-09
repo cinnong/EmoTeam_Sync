@@ -11,7 +11,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { apiURL } from '../utils/api';
+import { apiURL } from "../utils/api";
 
 const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444"];
 
@@ -121,7 +121,7 @@ const DashboardPage = () => {
         <div>
           {currentUser && (
             <h1 className="text-3xl font-bold text-gray-900 mb-2 print:text-3xl print:text-black print:font-extrabold print:mb-3 break-words">
-              👋 Selamat datang kembali, {currentUser.nama}!
+              👋 datang kembali, {currentUser.nama}!
             </h1>
           )}
 
