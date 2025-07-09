@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { apiURL } from '../utils/api';
 
 function TimPage() {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ function TimPage() {
     if (!user_id) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/my-teams/${user_id}`);
+      const res = await fetch(`${apiURL}/api/my-teams/${user_id}`);
       const data = await res.json();
 
       // Standarisasi format data tim
@@ -66,7 +67,7 @@ function TimPage() {
         return;
       }
 
-      const res = await fetch("http://localhost:5000/api/teams", {
+      const res = await fetch(`${apiURL}/api/teams`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -131,7 +132,7 @@ function TimPage() {
         setLoading(false);
         return;
       }
-      const res = await fetch("http://localhost:5000/api/teams/join", {
+      const res = await fetch(`${apiURL}/api/teams/join`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ kode: kodeTim, user_id }),
@@ -171,7 +172,7 @@ function TimPage() {
         return;
       }
 
-      const res = await fetch(`http://localhost:5000/api/teams/${timId}`, {
+      const res = await fetch(`${apiURL}/api/teams/${timId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",

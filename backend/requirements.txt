@@ -4,3 +4,5 @@ flask-cors
 mysql-connector-python
 werkzeug
 jwt
+flask_sqlalchemy
+pymysql

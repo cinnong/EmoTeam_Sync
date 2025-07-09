@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { apiURL } from '../utils/api';
 
 const CreateTeamPage = () => {
   const [teamName, setTeamName] = useState('');
@@ -30,7 +31,7 @@ const CreateTeamPage = () => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const token = localStorage.getItem('token');
       
-      const response = await fetch('http://localhost:5000/api/teams', {
+      const response = await fetch(`${apiURL}/api/teams`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

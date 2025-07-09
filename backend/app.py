@@ -5,15 +5,17 @@ from models import db, User, Team, TeamMember, Session, EmotionData, Notificatio
 import random
 import string
 
+import os
+
 app = Flask(__name__)
 CORS(app, 
-     resources={r"/api/*": {"origins": ["http://localhost:3000", "http://localhost:3001"]}}, 
+     resources={r"/api/*": {"origins": os.environ.get('CORS_ORIGINS', 'http://localhost:3000,http://localhost:3001').split(',')}}, 
      supports_credentials=True,
      allow_headers=["Content-Type", "Authorization"],
      methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"])
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://root:@localhost/emoteam2'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'mysql+pymysql://root:@localhost/emoteam2')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.secret_key = 'supersecretkey'
+app.secret_key = os.environ.get('SECRET_KEY', 'supersecretkey')
 db.init_app(app)
 
 
@@ -1347,4 +1349,4 @@ if __name__ == '__main__':
             print("User admin sudah ada di database")
             print("Password admin telah diupdate ke: admin123")
             
-    app.run(debug=True)
+    app.run(debug=True, host='0.0.0.0')

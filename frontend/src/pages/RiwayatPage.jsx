@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import EmotionPieChart from "../components/EmotionPieChart";
 import jsPDF from "jspdf";
+import { apiURL } from '../utils/api';
 
 const RiwayatPage = () => {
   const [riwayatSesi, setRiwayatSesi] = useState([]);
@@ -14,7 +15,7 @@ const RiwayatPage = () => {
   const fetchRiwayatSesi = async () => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/user/${user.id}/sessions`,
+        `${apiURL}/api/user/${user.id}/sessions`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -40,7 +41,7 @@ const RiwayatPage = () => {
   const fetchEmotionData = async (sessionId) => {
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sessions/${sessionId}/emotions/all`,
+        `${apiURL}/api/sessions/${sessionId}/emotions/all`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -70,7 +71,7 @@ const RiwayatPage = () => {
       return;
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sessions/${sessionId}`,
+        `${apiURL}/api/sessions/${sessionId}`,
         {
           method: "DELETE",
           headers: {
