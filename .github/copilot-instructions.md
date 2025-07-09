@@ -1,292 +1,481 @@
-harus beracu pada file Emo Team.pdf yang telah saya kirim tadi.
-buatkan kodenya yang simpel dan mudah dipahami.
-gunakan tailwindcss untuk styling.
-jangan pernah gunakan data dummy
+Kode Login
+ React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { setUserOnline } from "../utils/userStatus";
+import { apiURL } from '../utils/api';
+
+const LoginPage = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+
+    try {
+      const response = await fetch(`${apiURL}/api/login`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Simpan token dan data user ke localStorage
+        localStorage.setItem("token", data.token || "dummy-token");
+        localStorage.setItem(
+          "user",
+          JSON.stringify({
+            id: data.user_id,
+            nama: data.nama,
+            email: data.email,
+            role: data.role,
+            team_id: data.team_id || null,
+          })
+        );
+
+        // Set user status menjadi online
+        await setUserOnline(data.user_id);
+
+        // Selalu redirect ke dashboard setelah login
+        window.location.href = "/dashboard";
+      } else {
+        alert(data.message || "Login gagal. Periksa email dan password Anda.");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan. Silakan coba lagi.");
+    }
+  };
+
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Header dengan branding yang jelas */}
+        <div className="text-center mb-8">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-3xl">🎭</span>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">EmoTeam</h1>
+        </div>
+
+        {/* Form Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <div className="mb-6">
+            <h2 className="text-3xl font-semibold text-gray-900 text-center mb-2">
+              Masuk ke Akun Anda
+            </h2>
+            <p className="text-center text-base text-gray-600">
+              Belum punya akun?{" "}
+              <Link
+                to="/register"
+                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                Daftar di sini
+              </Link>
+            </p>
+          </div>
+
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Email Input */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Email Address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Masukkan email Anda"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Password Input */}
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Masukkan password Anda"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {/* Submit Button */}
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
+              >
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                  <svg
+                    className="h-5 w-5 text-blue-300 group-hover:text-blue-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013 3v1"
+                    />
+                  </svg>
+                </span>
+                Masuk ke EmoTeam
+              </button>
+            </div>
+          </form>
+        </div>
+
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500">
+            © 2025 EmoTeam. Platform modern untuk monitoring emosi tim secara
+            real-time
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default LoginPage;
 
 
-User login/register → masuk dashboard.
-User membuat/join tim → lihat/mengelola anggota tim.
-User membuat/memulai sesi kolaborasi → sesi aktif.
-Selama sesi, deteksi ekspresi wajah via webcam (face-api.js) → hasil dikirim ke backend.
-Data emosi disimpan di backend → bisa diakses untuk analisis/report.
-User bisa melihat riwayat sesi, statistik emosi, dan insight tim.
+kode register
+import React, { useState } from "react";
+import { Link } from "react-router-dom";
+import { apiURL } from '../utils/api';
 
-ini mysqlnya
--- phpMyAdmin SQL Dump
--- version 5.2.1
--- https://www.phpmyadmin.net/
---
--- Host: 127.0.0.1
--- Waktu pembuatan: 02 Jul 2025 pada 15.05
--- Versi server: 10.4.32-MariaDB
--- Versi PHP: 8.0.30
+const RegisterPage = () => {
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+  });
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
+    if (formData.password !== formData.confirmPassword) {
+      alert("Password dan konfirmasi password tidak cocok");
+      return;
+    }
 
---
--- Database: `emoteam2`
---
+    try {
+      const response = await fetch(`${apiURL}/api/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nama: formData.name, // disesuaikan dengan backend
+          email: formData.email,
+          password: formData.password,
+          confirmPassword: formData.confirmPassword,
+        }),
+      });
 
--- --------------------------------------------------------
+      const data = await response.json();
 
---
--- Struktur dari tabel `emotion_data`
---
+      if (response.ok) {
+        // Registrasi berhasil, arahkan ke halaman login
+        alert("Registrasi berhasil! Silakan login dengan akun baru Anda.");
+        window.location.href = "/login";
+      } else {
+        alert(data.message || "Registrasi gagal");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("Terjadi kesalahan. Silakan coba lagi.");
+    }
+  };
 
-CREATE TABLE `emotion_data` (
-  `id` int(11) NOT NULL,
-  `session_id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `emotion` varchar(50) NOT NULL,
-  `confidence` float NOT NULL,
-  `timestamp` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  return (
+    <div className="min-h-screen w-full bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full">
+        {/* Header dengan branding yang jelas */}
+        <div className="text-center mb-8">
+          <div className="mx-auto h-16 w-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            <span className="text-2xl">🎭</span>
+          </div>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">EmoTeam</h1>
+        </div>
 
--- --------------------------------------------------------
+        {/* Form Card */}
+        <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-8">
+          <div className="mb-6">
+            <h2 className="text-2xl font-semibold text-gray-900 text-center mb-2">
+              Buat Akun Baru
+            </h2>
+            <p className="text-center text-sm text-gray-600">
+              Sudah punya akun?{" "}
+              <Link
+                to="/login"
+                className="font-semibold text-blue-600 hover:text-blue-700 transition-colors"
+              >
+                Masuk di sini
+              </Link>
+            </p>
+          </div>
 
---
--- Struktur dari tabel `sessions`
---
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            {/* Name Input */}
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Nama Lengkap
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Masukkan nama lengkap Anda"
+                  value={formData.name}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
 
-CREATE TABLE `sessions` (
-  `id` int(11) NOT NULL,
-  `team_id` int(11) NOT NULL,
-  `creator_id` int(11) NOT NULL,
-  `start_time` timestamp NOT NULL DEFAULT current_timestamp(),
-  `end_time` timestamp NULL DEFAULT NULL,
-  `status` varchar(20) DEFAULT 'active',
-  `title` varchar(255) DEFAULT NULL,
-  `description` text DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+            {/* Email Input */}
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Email Address
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="email"
+                  name="email"
+                  type="email"
+                  autoComplete="email"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Masukkan email Anda"
+                  value={formData.email}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
 
--- --------------------------------------------------------
+            {/* Password Input */}
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="password"
+                  name="password"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Masukkan password Anda"
+                  value={formData.password}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
 
---
--- Struktur dari tabel `teams`
---
+            {/* Confirm Password Input */}
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Konfirmasi Password
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <svg
+                    className="h-5 w-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="confirmPassword"
+                  name="confirmPassword"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-xl text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                  placeholder="Konfirmasi password Anda"
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                />
+              </div>
+            </div>
 
-CREATE TABLE `teams` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `code` varchar(10) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `creator_id` int(11) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+            {/* Submit Button */}
+            <div>
+              <button
+                type="submit"
+                className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-xl text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 transform hover:scale-105"
+              >
+                <span className="absolute left-0 inset-y-0 flex items-center pl-3">
+                  <svg
+                    className="h-5 w-5 text-blue-300 group-hover:text-blue-200"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+                    />
+                  </svg>
+                </span>
+                Daftar ke EmoTeam
+              </button>
+            </div>
+          </form>
+        </div>
 
---
--- Dumping data untuk tabel `teams`
---
+        {/* Footer */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-gray-500">
+            © 2025 EmoTeam. Platform modern untuk monitoring emosi tim secara
+            real-time
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
 
-INSERT INTO `teams` (`id`, `name`, `code`, `created_at`, `creator_id`) VALUES
-(1, 'dsj', '6TQSEZ', '2025-06-19 04:38:02', 3),
-(2, 'ghjjkj.l', '30J08Z', '2025-06-19 04:38:36', 3),
-(3, 'abc', 'WZFXS5', '2025-06-19 04:40:09', 3),
-(4, 'jhks', 'XW86ZW', '2025-06-19 04:40:41', 3),
-(5, 'bdkaehl', 'RFV0F5', '2025-06-19 04:51:08', 4),
-(6, 'efw', 'Q17GAB', '2025-06-23 20:30:26', 2),
-(7, 'da,', 'PLYGA9', '2025-06-23 20:40:27', 2),
-(8, 'ipa', '0P3L8M', '2025-06-23 20:41:44', 2),
-(9, 'jkka', 'F982LD', '2025-06-23 20:48:14', 2),
-(10, 'frfr', 'PSUNQW', '2025-06-23 20:49:03', 2),
-(11, 'Tim Uji Coba', 'TIM-2514', '2025-06-23 21:29:19', 2),
-(12, 'mtk', 'TIM-8442', '2025-06-23 21:30:00', 2),
-(13, 'goni', 'TIM-2228', '2025-06-30 14:31:23', 3),
-(14, 'ips', 'TIM-8937', '2025-06-30 14:42:53', 6),
-(15, 'ipa', 'TIM-8464', '2025-07-01 04:02:04', 2),
-(16, 'matematika', 'TIM-1735', '2025-07-01 04:08:00', 6),
-(17, 'mtk', 'TIM-2090', '2025-07-02 12:13:04', 7);
-
--- --------------------------------------------------------
-
---
--- Struktur dari tabel `team_members`
---
-
-CREATE TABLE `team_members` (
-  `id` int(11) NOT NULL,
-  `user_id` int(11) NOT NULL,
-  `team_id` int(11) NOT NULL,
-  `is_moderator` tinyint(1) DEFAULT 0,
-  `joined_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` varchar(20) DEFAULT 'active'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data untuk tabel `team_members`
---
-
-INSERT INTO `team_members` (`id`, `user_id`, `team_id`, `is_moderator`, `joined_at`, `status`) VALUES
-(1, 3, 1, 1, '2025-06-19 04:38:02', 'online'),
-(2, 3, 2, 1, '2025-06-19 04:38:36', 'online'),
-(3, 3, 3, 1, '2025-06-19 04:40:09', 'online'),
-(4, 3, 4, 1, '2025-06-19 04:40:41', 'online'),
-(5, 4, 5, 1, '2025-06-19 04:51:08', 'active'),
-(6, 2, 6, 1, '2025-06-23 20:30:26', 'offline'),
-(7, 2, 7, 1, '2025-06-23 20:40:27', 'offline'),
-(8, 2, 8, 1, '2025-06-23 20:41:44', 'offline'),
-(9, 2, 9, 1, '2025-06-23 20:48:14', 'offline'),
-(10, 2, 10, 1, '2025-06-23 20:49:03', 'offline'),
-(11, 2, 11, 1, '2025-06-23 21:29:19', 'offline'),
-(12, 2, 12, 1, '2025-06-23 21:30:00', 'offline'),
-(13, 3, 12, 0, '2025-06-23 21:50:15', 'online'),
-(14, 1, 12, 0, '2025-06-23 22:06:27', 'active'),
-(15, 3, 13, 1, '2025-06-30 14:31:23', 'online'),
-(16, 6, 14, 1, '2025-06-30 14:42:53', 'online'),
-(17, 6, 13, 0, '2025-06-30 14:44:12', 'online'),
-(18, 2, 15, 1, '2025-07-01 04:02:04', 'offline'),
-(19, 6, 12, 0, '2025-07-01 04:05:58', 'online'),
-(20, 6, 5, 0, '2025-07-01 04:06:48', 'online'),
-(21, 6, 4, 0, '2025-07-01 04:07:05', 'online'),
-(22, 6, 16, 1, '2025-07-01 04:08:00', 'online'),
-(24, 7, 17, 1, '2025-07-02 12:13:04', 'offline'),
-(25, 7, 16, 0, '2025-07-02 12:14:00', 'offline');
-
--- --------------------------------------------------------
-
---
--- Struktur dari tabel `user`
---
-
-CREATE TABLE `user` (
-  `id` int(11) NOT NULL,
-  `nama` varchar(100) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `password` varchar(255) NOT NULL,
-  `role` varchar(20) NOT NULL DEFAULT 'member',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data untuk tabel `user`
---
-
-INSERT INTO `user` (`id`, `nama`, `email`, `password`, `role`, `created_at`) VALUES
-(1, 'Admin', 'admin@example.com', '$2b$12$EixZaYVK1fsbw1ZfbX3OXePaWxn96p36WQoeG6Lruj3vjPGga31lW', 'admin', '2025-06-19 03:57:37'),
-(2, 'Admin User', 'admin@email.com', 'scrypt:32768:8:1$uT9qndlKeAJO4E5B$40957ab78127888fa2066f5b4859d744ace724eef5d4947a0f7be338809f2b565c4b1d772c7a4fceb71dc212d5727e9c80de1ad4c25c0057b30c91b4c637878a', 'admin', '2025-06-19 04:00:17'),
-(3, 'cinnong', 'cinnong22@gmail.com', 'scrypt:32768:8:1$GWDWxNeiaPRlQL3J$90a67db1142f988cbfce20349aae259ca3e5b406854832bdf57350fc14087a137783b0bb4f339d37188a9d9a3eb9d6be5fc08a1a2284a77528bf4a100039f773', 'member', '2025-06-19 04:03:56'),
-(4, 'donn', 'doni@gmail.com', 'scrypt:32768:8:1$bCjdC0fhPj5SU6fg$73c444ebc6969e2e55e36a9c57b472641fc5af194fb6e27a0d25c7242fc3f3fc1f2e57703f39155264c6980e357d07b09087c541853b8187a952db5d923b7ede', 'member', '2025-06-19 04:46:56'),
-(5, 'siti', 'siti@gmail.com', 'scrypt:32768:8:1$ftFfB7b8vTdVxCcy$82eb63e567ed79ff9ddc73a341d9124ce8fbbab1c3b3f39506b23d2263e2c761b3662dbc7f6b6ccdde74f49d30b18278f72e40e73a1ed4af8d70d58f1bb55f7b', 'member', '2025-06-23 16:21:39'),
-(6, 'budi', 'budi@gmail.com', 'scrypt:32768:8:1$qNuiII78T4eqC2cM$7bdcb48c60e60e0845489953495cabd797019cb040a9ae17c419db9ec27fa37db6aaed5eb540dcc85df8564bd7af37458201a1a28d6a0cb70951c13d0f9281e2', 'member', '2025-06-23 16:24:45'),
-(7, 'gigi', 'gigi@gmail.com', 'scrypt:32768:8:1$eeXLhrJ97D7z44q4$80eaa55803bc9ee25c42560a975d076cb6a113c5ab023545a91e6676a830459a23558037fb6bd2bcee3d01d281f80e8b81d81e364968cdee5560242d117558ae', 'member', '2025-07-02 12:07:54');
-
---
--- Indexes for dumped tables
---
-
---
--- Indeks untuk tabel `emotion_data`
---
-ALTER TABLE `emotion_data`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_emotion_data_session` (`session_id`),
-  ADD KEY `idx_emotion_data_user` (`user_id`);
-
---
--- Indeks untuk tabel `sessions`
---
-ALTER TABLE `sessions`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `creator_id` (`creator_id`),
-  ADD KEY `idx_sessions_team` (`team_id`);
-
---
--- Indeks untuk tabel `teams`
---
-ALTER TABLE `teams`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `code` (`code`),
-  ADD KEY `creator_id` (`creator_id`);
-
---
--- Indeks untuk tabel `team_members`
---
-ALTER TABLE `team_members`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_team_member` (`user_id`,`team_id`),
-  ADD KEY `idx_team_members_user` (`user_id`),
-  ADD KEY `idx_team_members_team` (`team_id`);
-
---
--- Indeks untuk tabel `user`
---
-ALTER TABLE `user`
-  ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `email` (`email`);
-
---
--- AUTO_INCREMENT untuk tabel yang dibuang
---
-
---
--- AUTO_INCREMENT untuk tabel `emotion_data`
---
-ALTER TABLE `emotion_data`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT untuk tabel `sessions`
---
-ALTER TABLE `sessions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
-
---
--- AUTO_INCREMENT untuk tabel `teams`
---
-ALTER TABLE `teams`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
-
---
--- AUTO_INCREMENT untuk tabel `team_members`
---
-ALTER TABLE `team_members`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=26;
-
---
--- AUTO_INCREMENT untuk tabel `user`
---
-ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
-
---
--- Ketidakleluasaan untuk tabel pelimpahan (Dumped Tables)
---
-
---
--- Ketidakleluasaan untuk tabel `emotion_data`
---
-ALTER TABLE `emotion_data`
-  ADD CONSTRAINT `emotion_data_ibfk_1` FOREIGN KEY (`session_id`) REFERENCES `sessions` (`id`),
-  ADD CONSTRAINT `emotion_data_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`);
-
---
--- Ketidakleluasaan untuk tabel `sessions`
---
-ALTER TABLE `sessions`
-  ADD CONSTRAINT `sessions_ibfk_1` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`),
-  ADD CONSTRAINT `sessions_ibfk_2` FOREIGN KEY (`creator_id`) REFERENCES `user` (`id`);
-
---
--- Ketidakleluasaan untuk tabel `teams`
---
-ALTER TABLE `teams`
-  ADD CONSTRAINT `teams_ibfk_1` FOREIGN KEY (`creator_id`) REFERENCES `user` (`id`);
-
---
--- Ketidakleluasaan untuk tabel `team_members`
---
-ALTER TABLE `team_members`
-  ADD CONSTRAINT `team_members_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `user` (`id`),
-  ADD CONSTRAINT `team_members_ibfk_2` FOREIGN KEY (`team_id`) REFERENCES `teams` (`id`);
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+export default RegisterPage;
