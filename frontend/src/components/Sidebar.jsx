@@ -8,13 +8,14 @@ import {
   FaSignOutAlt,
   FaBell,
 } from "react-icons/fa";
+import { apiURL } from '../utils/api';
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const [showNotif, setShowNotif] = useState(false);
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const user = JSON.parse(localStorage.getItem("user"));
+  const [user, setUser] = useState(null);
   const location = useLocation();
   const bellRef = useRef();
   const [notifPos, setNotifPos] = useState({ top: 0, left: 0 });
@@ -22,11 +23,19 @@ const Sidebar = () => {
     location.pathname === path ? "bg-blue-100 text-blue-600" : "text-gray-700";
 
   useEffect(() => {
+    const userData = JSON.parse(localStorage.getItem("user") || "null");
+    if (userData) {
+      setUser(userData);
+    }
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
-    fetch(`http://localhost:5000/api/notifications/${user.id}`)
+    fetch(`${apiURL}/api/notifications/${user.id}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.success) {
+          setUser(user);
           setNotifications(data.notifications);
           setUnreadCount(data.notifications.filter((n) => !n.is_read).length);
         }
@@ -63,7 +72,7 @@ const Sidebar = () => {
       if (unread.length > 0) {
         Promise.all(
           unread.map((notif) =>
-            fetch(`http://localhost:5000/api/notifications/${notif.id}/read`, {
+            fetch(`${apiURL}/api/notifications/${notif.id}/read`, {
               method: "POST",
             })
           )
@@ -78,7 +87,7 @@ const Sidebar = () => {
   }, [showNotif, notifications]);
 
   const handleNotifClick = (notifId) => {
-    fetch(`http://localhost:5000/api/notifications/${notifId}/read`, {
+    fetch(`${apiURL}/api/notifications/${notifId}/read`, {
       method: "POST",
     }).then(() => {
       setNotifications((prev) =>

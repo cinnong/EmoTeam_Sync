@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import WebcamEmotion from "../components/WebcamEmotion";
+import { apiURL } from '../utils/api';
 
 function DetailTimPage() {
   const { timId } = useParams();
@@ -48,7 +49,7 @@ function DetailTimPage() {
       const userId = userData.id;
 
       // Ambil daftar tim user untuk mendapatkan detail tim
-      const res = await fetch(`http://localhost:5000/api/my-teams/${userId}`);
+      const res = await fetch(`${apiURL}/api/my-teams/${userId}`);
       const data = await res.json();
 
       console.log("Detail tim response:", data);
@@ -157,7 +158,7 @@ function DetailTimPage() {
 
     try {
       const res = await fetch(
-        `http://localhost:5000/api/teams/${tim.id}/members/${userId}`,
+        `${apiURL}/api/teams/${tim.id}/members/${userId}`,
         {
           method: "DELETE",
           headers: {
@@ -194,7 +195,7 @@ function DetailTimPage() {
       if (!user || !tim) return;
 
       const response = await fetch(
-        `http://localhost:5000/api/teams/${tim.id}/sessions`,
+        `${apiURL}/api/teams/${tim.id}/sessions`,
         {
           method: "POST",
           headers: {
@@ -234,7 +235,7 @@ function DetailTimPage() {
 
     try {
       const response = await fetch(
-        `http://localhost:5000/api/sessions/${sesiAktifId}/stop`,
+        `${apiURL}/api/sessions/${sesiAktifId}/stop`,
         {
           method: "POST",
           headers: {
@@ -275,7 +276,7 @@ function DetailTimPage() {
         if (!user) return;
 
         const response = await fetch(
-          `http://localhost:5000/api/sessions/${sesiAktifId}/emotion`,
+          `${apiURL}/api/sessions/${sesiAktifId}/emotion`,
           {
             method: "POST",
             headers: {

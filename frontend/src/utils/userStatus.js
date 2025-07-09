@@ -1,9 +1,11 @@
+import { apiURL } from './api';
+
 // Utility functions untuk mengelola status user online/offline
 
 // Function untuk update status user
 export const updateUserStatus = async (userId, status) => {
   try {
-    const response = await fetch("http://localhost:5000/api/user/status", {
+    const response = await fetch(`${apiURL}/api/user/status`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -81,7 +83,7 @@ export const setupStatusTracking = () => {
           status: "offline",
         });
 
-        navigator.sendBeacon("http://localhost:5000/api/user/status", data);
+        navigator.sendBeacon(`${apiURL}/api/user/status`, data);
       };
 
       // Set user offline saat tab kehilangan focus (optional)

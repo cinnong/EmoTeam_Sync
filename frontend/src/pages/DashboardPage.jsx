@@ -11,6 +11,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
+import { apiURL } from '../utils/api';
 
 const COLORS = ["#10B981", "#3B82F6", "#F59E0B", "#EF4444"];
 
@@ -28,7 +29,7 @@ const DashboardPage = () => {
       const user = JSON.parse(localStorage.getItem("user") || "{}");
 
       const response = await fetch(
-        `http://localhost:5000/api/dashboard/stats?user_id=${user.id}`
+        `${apiURL}/api/dashboard/stats?user_id=${user.id}`
       );
       const result = await response.json();
 

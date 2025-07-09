@@ -14,6 +14,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
+import { apiURL } from '../utils/api';
 
 const COLORS = [
   "#10B981",
@@ -42,7 +43,7 @@ const LaporanPage = () => {
       }
 
       const response = await fetch(
-        `http://localhost:5000/api/reports/monthly?user_id=${user.id}`
+        `${apiURL}/api/reports/monthly?user_id=${user.id}`
       );
       const result = await response.json();
 
