@@ -105,7 +105,7 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="w-72 bg-white shadow-lg flex flex-col h-screen fixed top-0 left-0 z-30">
+    <div className="w-72 bg-white shadow-lg flex flex-col h-screen fixed top-0 left-0 z-30 min-w-0">
       <div className="p-4 border-b flex items-center justify-between">
         <h1 className="text-2xl font-bold text-blue-600">EmoTeam Sync</h1>
         {/* Bell notification */}

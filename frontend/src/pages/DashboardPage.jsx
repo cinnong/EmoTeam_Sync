@@ -119,12 +119,12 @@ const DashboardPage = () => {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center print:flex-col print:items-start print:mb-6">
         <div>
           {currentUser && (
-            <h1 className="text-3xl font-bold text-gray-900 mb-2 print:text-3xl print:text-black print:font-extrabold print:mb-3">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2 print:text-3xl print:text-black print:font-extrabold print:mb-3 break-words">
               👋 Selamat datang kembali, {currentUser.nama}!
             </h1>
           )}
 
-          <p className="text-lg font-semibold text-gray-700 print:text-xl print:font-bold">
+          <p className="text-lg font-semibold text-gray-700 print:text-xl print:font-bold break-words">
             {currentTime.toLocaleDateString("id-ID", {
               weekday: "long",
               year: "numeric",

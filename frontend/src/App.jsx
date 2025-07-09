@@ -112,9 +112,8 @@ function App() {
       // This is now handled by the Route component
     }
   }, [location]);
-
   return (
-    <div className="flex min-h-screen bg-gray-50">
+    <div className="flex min-h-screen bg-gray-50 overflow-x-auto">
       {/* Sidebar hanya tampil di halaman yang membutuhkan */}
       {!hideSidebar && <Sidebar />}
 
@@ -122,7 +121,7 @@ function App() {
         className={
           hideSidebar
             ? "flex-1 flex justify-center items-center min-h-screen bg-gray-50"
-            : "flex-1 overflow-y-auto ml-72"
+            : "flex-1 overflow-y-auto ml-72 min-w-0"
         }
       >
         <ToastContainer position="top-right" autoClose={3000} />
