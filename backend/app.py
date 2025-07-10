@@ -230,30 +230,78 @@ def api_dashboard_stats():
                     'is_online': member_obj.status in ['online', 'active']
                 })
         
-        # Hitung rata-rata mood dengan skala yang lebih realistis
-        total_mood_score = 0
-        mood_count = 0
+        # Hitung rata-rata mood dengan logika yang sama seperti laporan
+        # Gunakan semua deteksi emosi (7 hari terakhir), bukan per anggota
+        
+        # Ambil semua data emosi 7 hari terakhir
+        all_emotions = db.session.query(EmotionData).join(Session).filter(
+            Session.team_id.in_(team_ids),
+            EmotionData.timestamp >= start_date,
+            EmotionData.timestamp <= end_date
+        ).all() if team_ids else []
+        
+        # Hitung distribusi emosi dengan normalisasi nama
+        emotion_counts = {
+            'happy': 0, 'neutral': 0, 'sad': 0, 'angry': 0, 
+            'surprise': 0, 'fear': 0, 'disgust': 0
+        }
+        
+        for emotion in all_emotions:
+            # Normalize emotion names
+            emotion_name = emotion.emotion
+            if emotion_name == 'surprised':
+                emotion_name = 'surprise'
+            elif emotion_name == 'fearful':
+                emotion_name = 'fear'
+            
+            if emotion_name in emotion_counts:
+                emotion_counts[emotion_name] += 1
+        
+        total_emotions = sum(emotion_counts.values())
+        mood_score = 0  # default 0 jika tidak ada data
+        
+        if total_emotions > 0:
+            positive_emotions = emotion_counts['happy'] + emotion_counts['surprise']
+            negative_emotions = emotion_counts['sad'] + emotion_counts['angry'] + emotion_counts['fear'] + emotion_counts['disgust']
+            neutral_emotions = emotion_counts['neutral']
+            
+            # Rumus mood score yang sama dengan laporan:
+            # Positive = 85 poin, Neutral = 50 poin, Negative = 20 poin
+            positive_score = positive_emotions * 85
+            neutral_score = neutral_emotions * 50
+            negative_score = negative_emotions * 20
+            
+            total_score = positive_score + neutral_score + negative_score
+            
+            if total_emotions > 0:
+                mood_score = total_score / total_emotions
+            else:
+                mood_score = 0
+                
+            mood_score = max(0, min(100, mood_score))  # Ensure 0-100 range
+        else:
+            mood_score = 0  # Tidak ada data emosi sama sekali
+        
+        avg_mood = round(mood_score)
+        
+        print(f"[DEBUG] Dashboard mood calculation:")
+        print(f"  - Total emotions (7 days): {total_emotions}")
+        print(f"  - Emotion counts: {emotion_counts}")
+        print(f"  - Mood score: {mood_score}")
+        print(f"  - Final avg_mood: {avg_mood}")
+        
+        # Hitung mood distribution untuk members (tetap per anggota untuk tampilan)
         happy_members = 0
         neutral_members = 0
         sad_members = 0
         
         for member in team_members_data:
             if member['mood'] == '😊':
-                total_mood_score += 85  # Senang = 85 (tidak sempurna 100)
                 happy_members += 1
             elif member['mood'] == '😐':
-                total_mood_score += 50  # Netral = 50 (tengah-tengah)
                 neutral_members += 1
             else:
-                total_mood_score += 20  # Sedih = 20 (bukan 0, masih ada harapan)
                 sad_members += 1
-            mood_count += 1
-        
-        # Hitung rata-rata mood dengan logika yang lebih realistis
-        if mood_count > 0:
-            avg_mood = round(total_mood_score / mood_count)
-        else:
-            avg_mood = 0  # User baru atau belum ada data emosi
         
         # Mood distribution data
         mood_distribution = [
