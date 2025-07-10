@@ -121,7 +121,7 @@ const DashboardPage = () => {
         <div>
           {currentUser && (
             <h1 className="text-3xl font-bold text-gray-900 mb-2 print:text-3xl print:text-black print:font-extrabold print:mb-3 break-words">
-              👋 datang kembali, {currentUser.nama}!
+              👋 Selamat datang kembali, {currentUser.nama}!
             </h1>
           )}
 
