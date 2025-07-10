@@ -187,8 +187,10 @@ def api_dashboard_stats():
                 'marah': angry_count
             })
         
-        # Team members dengan status terbaru
+        # Team members dengan status terbaru (unique users only)
         team_members_data = []
+        unique_users = set()  # Track unique users to avoid duplicates
+        
         if team_ids:
             members = db.session.query(User, TeamMember, Team).join(
                 TeamMember, User.id == TeamMember.user_id
@@ -197,6 +199,10 @@ def api_dashboard_stats():
             ).filter(TeamMember.team_id.in_(team_ids)).all()
             
             for user_obj, member_obj, team_obj in members:
+                # Skip if user already processed (avoid duplicates)
+                if user_obj.id in unique_users:
+                    continue
+                unique_users.add(user_obj.id)
                 # Ambil emosi terbaru untuk member ini
                 latest_emotion = db.session.query(EmotionData).join(Session).filter(
                     Session.team_id.in_(team_ids),
@@ -243,7 +249,11 @@ def api_dashboard_stats():
                 sad_members += 1
             mood_count += 1
         
-        avg_mood = (total_mood_score / mood_count) if mood_count > 0 else 50
+        # Hitung rata-rata mood dengan logika yang lebih realistis
+        if mood_count > 0:
+            avg_mood = round(total_mood_score / mood_count)
+        else:
+            avg_mood = 0  # User baru atau belum ada data emosi
         
         # Mood distribution data
         mood_distribution = [
@@ -1018,27 +1028,39 @@ def mark_notification_read(notif_id):
 @app.route('/api/reports/monthly', methods=['GET'])
 def api_monthly_report():
     try:
+        print(f"[DEBUG] Monthly report request received")
         user_id = request.args.get('user_id')
         if not user_id:
             return jsonify({'success': False, 'message': 'User ID diperlukan'}), 400
         
+        print(f"[DEBUG] Looking for user_id: {user_id}")
         user = User.query.get(user_id)
         if not user:
             return jsonify({'success': False, 'message': 'User tidak ditemukan'}), 404
         
+        print(f"[DEBUG] Found user: {user.nama}")
+        
         # Ambil tim-tim user
         user_teams = db.session.query(Team).join(TeamMember).filter(TeamMember.user_id == user_id).all()
         team_ids = [team.id for team in user_teams]
+        print(f"[DEBUG] User teams: {len(user_teams)}, team_ids: {team_ids}")
         
         from datetime import datetime, timedelta
         # Data untuk bulan ini
         now = datetime.now()
         start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         end_of_month = (start_of_month + timedelta(days=32)).replace(day=1) - timedelta(seconds=1)
+        print(f"[DEBUG] Date range: {start_of_month} to {end_of_month}")
         
         # Statistik bulanan
         total_teams = len(user_teams)
-        total_members = db.session.query(TeamMember).filter(TeamMember.team_id.in_(team_ids)).count() if team_ids else 0
+        print(f"[DEBUG] Calculated total_teams: {total_teams}")
+        
+        # Count unique members across all teams (avoid duplicates)
+        unique_members = db.session.query(User).join(TeamMember).filter(
+            TeamMember.team_id.in_(team_ids)
+        ).distinct().all() if team_ids else []
+        total_members = len(unique_members)
         
         # Total sesi bulan ini
         monthly_sessions = db.session.query(Session).filter(
@@ -1046,6 +1068,7 @@ def api_monthly_report():
             Session.start_time >= start_of_month,
             Session.start_time <= end_of_month
         ).count() if team_ids else 0
+        print(f"[DEBUG] Monthly sessions count: {monthly_sessions} (type: {type(monthly_sessions)})")
         
         # Sesi aktif (yang sedang berjalan saat ini)
         current_active_sessions = db.session.query(Session).filter(
@@ -1072,11 +1095,18 @@ def api_monthly_report():
         
         # Simulasi durasi emosi berdasarkan confidence dan timestamp
         for emotion in monthly_emotions:
-            if emotion.emotion in emotion_counts:
-                emotion_counts[emotion.emotion] += 1
+            # Normalize emotion names
+            emotion_name = emotion.emotion
+            if emotion_name == 'surprised':
+                emotion_name = 'surprise'
+            elif emotion_name == 'fearful':
+                emotion_name = 'fear'
+            
+            if emotion_name in emotion_counts:
+                emotion_counts[emotion_name] += 1
                 # Simulasi durasi berdasarkan confidence (semakin tinggi confidence, semakin lama durasi)
                 duration = emotion.confidence * 5 + 2  # 2-7 detik range
-                emotion_durations[emotion.emotion].append(duration)
+                emotion_durations[emotion_name].append(duration)
         
         # Format distribusi emosi untuk frontend
         emotion_distribution = []
@@ -1104,22 +1134,6 @@ def api_monthly_report():
                     'total_duration': round(sum(emotion_durations[emotion_key]), 1)
                 })
         
-        # Rata-rata mood (simplified)
-        total_emotions = sum(emotion_counts.values())
-        if total_emotions > 0:
-            positive_emotions = emotion_counts['happy'] + emotion_counts['surprise']
-            negative_emotions = emotion_counts['sad'] + emotion_counts['angry'] + emotion_counts['fear'] + emotion_counts['disgust']
-            neutral_emotions = emotion_counts['neutral']
-            
-            if positive_emotions >= negative_emotions and positive_emotions >= neutral_emotions:
-                avg_mood = '😊'
-            elif neutral_emotions >= negative_emotions:
-                avg_mood = '😐'
-            else:
-                avg_mood = '😔'
-        else:
-            avg_mood = '😐'
-        
         # Aktivitas harian untuk grafik
         daily_mood_data = []
         for day in range(1, 32):  # Maximum days in a month
@@ -1137,9 +1151,10 @@ def api_monthly_report():
                     EmotionData.timestamp < day_end
                 ).all() if team_ids else []
                 
-                happy_count = sum(1 for e in day_emotions if e.emotion in ['happy', 'surprise'])
+                # Normalize emotion names for counting
+                happy_count = sum(1 for e in day_emotions if e.emotion in ['happy', 'surprise', 'surprised'])
                 neutral_count = sum(1 for e in day_emotions if e.emotion == 'neutral')
-                sad_count = sum(1 for e in day_emotions if e.emotion in ['sad', 'fear'])
+                sad_count = sum(1 for e in day_emotions if e.emotion in ['sad', 'fear', 'fearful'])
                 angry_count = sum(1 for e in day_emotions if e.emotion in ['angry', 'disgust'])
                 
                 daily_mood_data.append({
@@ -1185,112 +1200,164 @@ def api_monthly_report():
             })
         
         # Tentukan emosi dominan
-        dominant_emotion = 'Netral'
+        dominant_emotion = 'Belum ada data'
         if emotion_distribution:
             dominant_emotion = max(emotion_distribution, key=lambda x: x['value'])['name']
         
-        # Hitung mood score berdasarkan distribusi
-        mood_score = 50  # default
+        # Hitung mood score berdasarkan distribusi yang lebih realistis
+        mood_score = 0  # default 0 jika tidak ada data
+        avg_mood = '😐'  # default emoji
+        
         if total_emotions > 0:
             positive_emotions = emotion_counts['happy'] + emotion_counts['surprise']
             negative_emotions = emotion_counts['sad'] + emotion_counts['angry'] + emotion_counts['fear'] + emotion_counts['disgust']
             neutral_emotions = emotion_counts['neutral']
             
             # Rumus mood score yang lebih realistis:
-            # Positif = +1 point, Netral = 0.5 point, Negatif = 0 point
-            # Kemudian dinormalisasi ke skala 0-100
-            positive_score = positive_emotions * 1.0
-            neutral_score = neutral_emotions * 0.5
-            negative_score = negative_emotions * 0.0
+            # Neutral seharusnya tidak terlalu rendah (50 poin, bukan 0.5)
+            # Positive = 85 poin, Neutral = 50 poin, Negative = 20 poin
+            positive_score = positive_emotions * 85
+            neutral_score = neutral_emotions * 50
+            negative_score = negative_emotions * 20
             
             total_score = positive_score + neutral_score + negative_score
-            max_possible_score = total_emotions * 1.0  # Jika semua emosi positif
             
-            if max_possible_score > 0:
-                mood_score = (total_score / max_possible_score) * 100
+            if total_emotions > 0:
+                mood_score = total_score / total_emotions
             else:
-                mood_score = 50
+                mood_score = 0  # Tidak ada data = 0
                 
             mood_score = max(0, min(100, mood_score))  # Ensure 0-100 range
+            
+            # Set emoji based on mood score
+            if mood_score >= 70:
+                avg_mood = '😊'
+            elif mood_score >= 40:
+                avg_mood = '😐'
+            else:
+                avg_mood = '😔'
+        else:
+            # Tidak ada data emosi sama sekali
+            mood_score = 0
+            avg_mood = '😐'
         
         # Generate emotion trend data (weekly data for the month)
         emotion_trend = []
         weeks = ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4']
         
         for i, week in enumerate(weeks):
-            week_start = start_of_month + timedelta(days=i*7)
-            week_end = min(week_start + timedelta(days=7), end_of_month)
-            
-            # Get emotions for this week
-            week_emotions = db.session.query(EmotionData).join(Session).filter(
-                Session.team_id.in_(team_ids),
-                EmotionData.timestamp >= week_start,
-                EmotionData.timestamp < week_end
-            ).all() if team_ids else []
-            
-            # Count emotions for this week
-            week_emotion_counts = {
-                'senang': sum(1 for e in week_emotions if e.emotion in ['happy', 'surprise']),
-                'netral': sum(1 for e in week_emotions if e.emotion == 'neutral'),
-                'sedih': sum(1 for e in week_emotions if e.emotion in ['sad', 'fear']),
-                'marah': sum(1 for e in week_emotions if e.emotion in ['angry', 'disgust'])
-            }
-            
-            emotion_trend.append({
-                'name': week,
-                **week_emotion_counts
-            })
-        
-        # Generate mood distribution (current status of team members)
-        mood_distribution = []
-        if team_ids:
-            # Get team members and their recent mood status
-            team_members = db.session.query(TeamMember, User).join(User).filter(
-                TeamMember.team_id.in_(team_ids),
-                TeamMember.status == 'active'
-            ).all()
-            
-            # Simulate mood distribution based on recent emotions
-            mood_counts = {'Senang': 0, 'Netral': 0, 'Sedih': 0, 'Marah': 0}
-            
-            for member, user in team_members:
-                # Get user's most recent emotion
-                recent_emotion = db.session.query(EmotionData).join(Session).filter(
-                    Session.team_id.in_(team_ids),
-                    EmotionData.user_id == user.id
-                ).order_by(EmotionData.timestamp.desc()).first()
+            try:
+                week_start = start_of_month + timedelta(days=i*7)
+                week_end = min(week_start + timedelta(days=7), end_of_month)
                 
-                if recent_emotion:
-                    if recent_emotion.emotion in ['happy', 'surprise']:
-                        mood_counts['Senang'] += 1
-                    elif recent_emotion.emotion == 'neutral':
-                        mood_counts['Netral'] += 1
-                    elif recent_emotion.emotion in ['sad', 'fear']:
-                        mood_counts['Sedih'] += 1
-                    elif recent_emotion.emotion in ['angry', 'disgust']:
-                        mood_counts['Marah'] += 1
-                    else:
-                        mood_counts['Netral'] += 1
-                else:
-                    # Default to neutral if no recent emotion
-                    mood_counts['Netral'] += 1
+                # Get emotions for this week
+                week_emotions = db.session.query(EmotionData).join(Session).filter(
+                    Session.team_id.in_(team_ids),
+                    EmotionData.timestamp >= week_start,
+                    EmotionData.timestamp < week_end
+                ).all() if team_ids else []
+                
+                # Count emotions for this week with normalized names
+                week_emotion_counts = {
+                    'senang': sum(1 for e in week_emotions if e.emotion in ['happy', 'surprise', 'surprised']),
+                    'netral': sum(1 for e in week_emotions if e.emotion == 'neutral'),
+                    'sedih': sum(1 for e in week_emotions if e.emotion in ['sad', 'fear', 'fearful']),
+                    'marah': sum(1 for e in week_emotions if e.emotion in ['angry', 'disgust'])
+                }
+                
+                emotion_trend.append({
+                    'name': week,
+                    **week_emotion_counts
+                })
+            except Exception as e:
+                print(f"Error processing week {i}: {e}")
+                # Add empty data for this week
+                emotion_trend.append({
+                    'name': week,
+                    'senang': 0,
+                    'netral': 0,
+                    'sedih': 0,
+                    'marah': 0
+                })
+        
+        # Generate mood distribution berdasarkan unique users, bukan sesi
+        mood_distribution = []
+        if total_emotions > 0:
+            # Hitung mood dominan per user (bukan per sesi)
+            user_moods = {'Senang': 0, 'Netral': 0, 'Sedih': 0, 'Marah': 0}
             
-            # Convert to format expected by frontend
-            for mood_name, count in mood_counts.items():
+            # Ambil semua users yang punya data emosi bulan ini
+            users_with_emotions = db.session.query(User).join(EmotionData).join(Session).filter(
+                Session.team_id.in_(team_ids),
+                EmotionData.timestamp >= start_of_month,
+                EmotionData.timestamp <= end_of_month
+            ).distinct().all() if team_ids else []
+            
+            print(f"[DEBUG] Users with emotions this month: {len(users_with_emotions)}")
+            for user in users_with_emotions:
+                print(f"  - {user.nama} (ID: {user.id})")
+            
+            for user in users_with_emotions:
+                # Ambil semua emosi user ini bulan ini
+                user_emotions = db.session.query(EmotionData).join(Session).filter(
+                    Session.team_id.in_(team_ids),
+                    EmotionData.user_id == user.id,
+                    EmotionData.timestamp >= start_of_month,
+                    EmotionData.timestamp <= end_of_month
+                ).all()
+                
+                if user_emotions:
+                    user_emotion_counts = {}
+                    for emotion in user_emotions:
+                        # Normalize emotion names
+                        emotion_name = emotion.emotion
+                        if emotion_name == 'surprised':
+                            emotion_name = 'surprise'
+                        elif emotion_name == 'fearful':
+                            emotion_name = 'fear'
+                        
+                        if emotion_name not in user_emotion_counts:
+                            user_emotion_counts[emotion_name] = 0
+                        user_emotion_counts[emotion_name] += 1
+                    
+                    # Only process if we have emotion data
+                    if user_emotion_counts:
+                        # Tentukan mood dominan user
+                        max_emotion = max(user_emotion_counts.keys(), key=lambda x: user_emotion_counts[x])
+                        
+                        if max_emotion in ['happy', 'surprise']:
+                            user_moods['Senang'] += 1
+                        elif max_emotion == 'neutral':
+                            user_moods['Netral'] += 1
+                        elif max_emotion in ['sad', 'fear']:
+                            user_moods['Sedih'] += 1
+                        elif max_emotion in ['angry', 'disgust']:
+                            user_moods['Marah'] += 1
+            
+            # Convert to format expected by frontend (only include non-zero values)
+            print(f"[DEBUG] User moods calculated: {user_moods}")
+            for mood_name, count in user_moods.items():
                 if count > 0:
                     mood_distribution.append({
                         'name': mood_name,
                         'value': count
                     })
         
-        # If no mood data, provide sample data for testing
+        # If no mood data, show "no data" instead of dummy data
         if not mood_distribution:
             mood_distribution = [
-                {'name': 'Senang', 'value': 5},
-                {'name': 'Netral', 'value': 3},
-                {'name': 'Sedih', 'value': 1},
-                {'name': 'Marah', 'value': 1}
+                {'name': 'Belum ada data', 'value': 0}
             ]
+        
+        print(f"[DEBUG] Before JSON serialization check:")
+        print(f"  - monthly_sessions: {monthly_sessions} (type: {type(monthly_sessions)})")
+        print(f"  - current_active_sessions: {current_active_sessions} (type: {type(current_active_sessions)})")
+        print(f"  - total_teams: {total_teams} (type: {type(total_teams)})")
+        print(f"  - total_members: {total_members} (type: {type(total_members)})")
+        print(f"  - total_emotions: {total_emotions}")
+        print(f"  - mood_score: {mood_score}")
+        print(f"  - avg_mood: {avg_mood}")
+        print(f"  - dominant_emotion: {dominant_emotion}")
         
         return jsonify({
             'success': True,
@@ -1302,10 +1369,7 @@ def api_monthly_report():
                     'active_sessions': current_active_sessions,  # Sesi yang sedang berjalan
                     'avg_mood_score': round(mood_score),
                     'dominant_emotion': dominant_emotion,
-                    'total_emotions': total_emotions,
-                    'total_detection_time': round(sum(
-                        sum(durations) for durations in emotion_durations.values()
-                    ), 1)
+                    'total_emotions': total_emotions
                 },
                 'emotion_distribution': emotion_distribution,
                 'emotion_trend': emotion_trend,
@@ -1315,13 +1379,138 @@ def api_monthly_report():
                 'period': {
                     'start': start_of_month.isoformat(),
                     'end': end_of_month.isoformat(),
-                    'month_name': start_of_month.strftime('%B %Y')
+                    'month_name': start_of_month.strftime('%B'),
+                    'year': start_of_month.year
                 }
             }
         })
         
     except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
         print(f"Error in monthly report: {str(e)}")
+        print(f"Full traceback: {error_details}")
+        return jsonify({
+            'success': False, 
+            'message': 'Terjadi kesalahan server',
+            'error': str(e)
+        }), 500
+
+# Endpoint untuk dashboard sesi aktif (hanya anggota yang ikut sesi)
+@app.route('/api/session/stats', methods=['GET'])
+def api_session_stats():
+    try:
+        session_id = request.args.get('session_id')
+        if not session_id:
+            return jsonify({'success': False, 'message': 'Session ID diperlukan'}), 400
+        
+        session = Session.query.get(session_id)
+        if not session:
+            return jsonify({'success': False, 'message': 'Sesi tidak ditemukan'}), 404
+        
+        # Ambil hanya anggota yang benar-benar ikut dalam sesi ini
+        # (berdasarkan data EmotionData - siapa yang punya data emosi di sesi ini)
+        participants_query = db.session.query(User).join(
+            EmotionData, User.id == EmotionData.user_id
+        ).filter(EmotionData.session_id == session_id).distinct()
+        
+        participants = participants_query.all()
+        
+        # Jika tidak ada data emosi, minimal tampilkan creator sesi
+        if not participants:
+            creator = User.query.get(session.creator_id)
+            if creator:
+                participants = [creator]
+        
+        # Hitung statistik berdasarkan partisipan aktual
+        team_members_data = []
+        total_mood_score = 0
+        mood_count = 0
+        happy_members = 0
+        neutral_members = 0
+        sad_members = 0
+        
+        for user_obj in participants:
+            # Ambil emosi terbaru untuk user ini di sesi ini
+            latest_emotion = db.session.query(EmotionData).filter(
+                EmotionData.session_id == session_id,
+                EmotionData.user_id == user_obj.id
+            ).order_by(EmotionData.timestamp.desc()).first()
+            
+            mood_emoji = '😊'
+            mood_score = 85  # Default happy
+            
+            if latest_emotion:
+                if latest_emotion.emotion in ['happy', 'surprise']:
+                    mood_emoji = '😊'
+                    mood_score = 85
+                    happy_members += 1
+                elif latest_emotion.emotion == 'neutral':
+                    mood_emoji = '😐'
+                    mood_score = 50
+                    neutral_members += 1
+                elif latest_emotion.emotion in ['sad', 'fear']:
+                    mood_emoji = '😔'
+                    mood_score = 20
+                    sad_members += 1
+                elif latest_emotion.emotion in ['angry', 'disgust']:
+                    mood_emoji = '😠'
+                    mood_score = 20
+                    sad_members += 1
+            else:
+                # Jika tidak ada data emosi (creator yang baru start sesi)
+                neutral_members += 1
+                mood_score = 50
+                mood_emoji = '😐'
+            
+            total_mood_score += mood_score
+            mood_count += 1
+            
+            team_members_data.append({
+                'id': user_obj.id,
+                'name': user_obj.nama,
+                'role': 'participant',
+                'team': session.team.name,
+                'mood': mood_emoji,
+                'lastActive': 'active' if latest_emotion else 'joined',
+                'is_online': True
+            })
+        
+        # Hitung rata-rata mood
+        if mood_count > 0:
+            avg_mood = round(total_mood_score / mood_count)
+        else:
+            avg_mood = 0
+        
+        # Mood distribution
+        mood_distribution = [
+            {'name': 'Senang', 'value': happy_members},
+            {'name': 'Netral', 'value': neutral_members},
+            {'name': 'Sedih', 'value': sad_members}
+        ]
+        
+        return jsonify({
+            'success': True,
+            'data': {
+                'session_info': {
+                    'id': session.id,
+                    'title': session.title,
+                    'team_name': session.team.name,
+                    'status': session.status,
+                    'creator': session.creator.nama
+                },
+                'stats': {
+                    'total_participants': len(team_members_data),
+                    'avg_mood': avg_mood,
+                    'session_duration': 'Active'  # Bisa dihitung dari start_time
+                },
+                'team_members': team_members_data,
+                'mood_distribution': mood_distribution
+            }
+        })
+        
+    except Exception as e:
+        print(f"Error in session stats: {str(e)}")
         return jsonify({'success': False, 'message': 'Terjadi kesalahan server'}), 500
 
 if __name__ == '__main__':

@@ -157,9 +157,11 @@ const DashboardPage = () => {
         />
         <StatCard
           title="Rata-rata Mood"
-          value={`${stats.avg_mood}%`}
+          value={stats.avg_mood === 0 ? "Belum ada data" : `${stats.avg_mood}%`}
           change={
-            stats.avg_mood >= 75
+            stats.avg_mood === 0
+              ? "Mulai sesi untuk melihat mood"
+              : stats.avg_mood >= 75
               ? "Sangat Baik"
               : stats.avg_mood >= 60
               ? "Baik"
@@ -170,7 +172,9 @@ const DashboardPage = () => {
               : "Buruk"
           }
           icon={
-            stats.avg_mood >= 75
+            stats.avg_mood === 0
+              ? "📊"
+              : stats.avg_mood >= 75
               ? "😊"
               : stats.avg_mood >= 60
               ? "🙂"
@@ -181,7 +185,9 @@ const DashboardPage = () => {
               : "😢"
           }
           color={
-            stats.avg_mood >= 75
+            stats.avg_mood === 0
+              ? "gray"
+              : stats.avg_mood >= 75
               ? "green"
               : stats.avg_mood >= 60
               ? "green"

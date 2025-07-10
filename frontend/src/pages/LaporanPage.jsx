@@ -14,7 +14,7 @@ import {
   AreaChart,
   Area,
 } from "recharts";
-import { apiURL } from '../utils/api';
+import { apiURL } from "../utils/api";
 
 const COLORS = [
   "#10B981",
@@ -110,7 +110,15 @@ const LaporanPage = () => {
     y += 6;
     doc.text(`Sesi Aktif: ${summary.active_sessions}`, 14, y);
     y += 8;
-    doc.text(`Rata-rata Mood: ${summary.avg_mood_score}/100`, 14, y);
+    doc.text(
+      `Rata-rata Mood: ${
+        summary.avg_mood_score === 0
+          ? "Belum ada data"
+          : `${summary.avg_mood_score}/100`
+      }`,
+      14,
+      y
+    );
     y += 8;
     doc.text(`Mood Dominan: ${summary.dominant_emotion}`, 14, y);
     y += 12;
@@ -366,11 +374,15 @@ const LaporanPage = () => {
               >
                 <p className="text-gray-500 text-base">Rata-rata Mood</p>
                 <p className="text-3xl font-bold text-yellow-600">
-                  {reportData.summary.avg_mood_score}/100
+                  {reportData.summary.avg_mood_score === 0
+                    ? "Belum ada data"
+                    : `${reportData.summary.avg_mood_score}/100`}
                 </p>
                 <div className="mt-2 flex flex-col items-center">
                   <span className="text-2xl">
-                    {reportData.summary.avg_mood_score >= 75
+                    {reportData.summary.avg_mood_score === 0
+                      ? "😐"
+                      : reportData.summary.avg_mood_score >= 75
                       ? "😊"
                       : reportData.summary.avg_mood_score >= 60
                       ? "🙂"
@@ -381,7 +393,9 @@ const LaporanPage = () => {
                       : "😢"}
                   </span>
                   <span className="text-xs text-gray-600 mt-1">
-                    {reportData.summary.avg_mood_score >= 75
+                    {reportData.summary.avg_mood_score === 0
+                      ? "Mulai sesi untuk melihat mood"
+                      : reportData.summary.avg_mood_score >= 75
                       ? "Sangat Baik"
                       : reportData.summary.avg_mood_score >= 60
                       ? "Baik"
@@ -410,7 +424,9 @@ const LaporanPage = () => {
                 💡 Insight Bulan Ini:
               </h3>
               <p className="text-sm text-blue-700 mt-1">
-                {reportData.summary.avg_mood_score > 75
+                {reportData.summary.avg_mood_score === 0
+                  ? `📊 Belum ada data emosi bulan ini. Mulai sesi kolaborasi untuk melihat insight mood tim.`
+                  : reportData.summary.avg_mood_score > 75
                   ? `🎉 Mood tim sangat positif! Emosi dominan: ${reportData.summary.dominant_emotion}. Pertahankan momentum ini.`
                   : reportData.summary.avg_mood_score > 50
                   ? `👍 Mood tim cukup baik. Emosi dominan: ${reportData.summary.dominant_emotion}. Ada ruang untuk perbaikan.`
